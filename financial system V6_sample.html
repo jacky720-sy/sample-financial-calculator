@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Personal Financial Calculator</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh; padding: 20px;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    .header { text-align: center; color: white; margin-bottom: 30px; animation: fadeInDown 0.8s ease; }
+    .header h1 { font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+    .tab-container { background: rgba(255, 255, 255, 0.95); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; animation: fadeInUp 0.8s ease; }
+    .tab-buttons { display: flex; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 0; }
+    .tab-button { flex: 1; padding: 20px; border: none; background: transparent; color: white; font-size: 1.1em; cursor: pointer; transition: all 0.3s ease; position: relative; }
+    .tab-button:hover { background: rgba(255,255,255,0.1); }
+    .tab-button.active { background: rgba(255,255,255,0.2); }
+    .tab-button.active::after { content: ""; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: white; animation: slideIn 0.3s ease; }
+    .tab-content { padding: 30px; display: none; animation: fadeIn 0.5s ease; }
+    .tab-content.active { display: block; }
+    .section { margin-bottom: 30px; }
+    .section-title { font-size: 1.5em; color: #333; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #667eea; }
+    .input-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }
+    .input-item { background: #f8f9fa; padding: 15px; border-radius: 10px; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .input-item:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    .input-item label { display: block; color: #666; font-size: 0.9em; margin-bottom: 8px; }
+    .input-item input { width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1em; transition: border-color 0.3s ease; }
+    .input-item input:focus { outline: none; border-color: #667eea; }
+    .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 30px; }
+    .summary-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .summary-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,0.3); }
+    .summary-card h3 { font-size: 0.9em; margin-bottom: 10px; opacity: 0.9; }
+    .summary-card .value { font-size: 2em; font-weight: bold; }
+    .chart-container { background: white; padding: 20px; border-radius: 15px; margin-top: 30px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+    canvas { max-width: 100%; height: auto !important; }
+    .btn-calculate { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 30px; font-size: 1em; border-radius: 25px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+    .btn-calculate:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5); }
+    @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideIn { from { width: 0; } to { width: 100%; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>💰 Personal Financial Calculator </h1>
+      <p>Easily manage your assets and cash flow</p>
+    </div>
+
+    <div class="tab-container">
+      <div class="tab-buttons">
+        <button class="tab-button active" onclick="switchTab(event, 'assets')">Household Asset Management</button>
+        <button class="tab-button" onclick="switchTab(event, 'cashflow')">Annual Cash Flow Statement</button>
+      </div>
+
+      <!-- Household Assets Section -->
+      <div id="assets" class="tab-content active">
+        <div class="section">
+          <h2 class="section-title">📊 Asset Allocation</h2>
+          <div class="input-group">
+            <div class="input-item">
+              <label>Liquid Assets (Cash, Savings)</label>
+              <input type="number" id="cash" placeholder="Enter Amount" value="10000" />
+            </div>
+            <div class="input-item">
+              <label>Investments (Stocks, Funds, Bonds)</label>
+              <input type="number" id="investments" placeholder="Enter Amount" value="5000" />
+            </div>
+            <div class="input-item">
+              <label>Fixed Assets (Property, Vehicle)</label>
+              <input type="number" id="fixedAssets" placeholder="Enter Amount" value="30000" />
+            </div>
+            <div class="input-item">
+              <label>Other Assets</label>
+              <input type="number" id="otherAssets" placeholder="Enter Amount" value="2000" />
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2 class="section-title">💳 Liabilities</h2>
+          <div class="input-group">
+            <div class="input-item">
+              <label>Mortgage</label>
+              <input type="number" id="mortgage" placeholder="Enter Amount" value="150000" />
+            </div>
+            <div class="input-item">
+              <label>Car Loan</label>
+              <input type="number" id="carLoan" placeholder="Enter Amount" value="20000" />
+            </div>
+            <div class="input-item">
+              <label>Credit Card Debt</label>
+              <input type="number" id="creditCard" placeholder="Enter Amount" value="5000" />
+            </div>
+            <div class="input-item">
+              <label>Other Debt</label>
+              <input type="number" id="otherDebt" placeholder="Enter Amount" value="10000" />
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-calculate" onclick="calculateAssets()">Calculate Assets</button>
+
+        <div class="summary-cards" id="assetSummary">
+          <div class="summary-card">
+            <h3>Total Assets</h3>
+            <div class="value" id="totalAssets">¥0</div>
+          </div>
+          <div class="summary-card">
+            <h3>Total Liabilities</h3>
+            <div class="value" id="totalDebt">¥0</div>
+          </div>
+          <div class="summary-card">
+            <h3>Net Worth</h3>
+            <div class="value" id="netWorth">¥0</div>
+          </div>
+          <div class="summary-card">
+            <h3>Debt Ratio</h3>
+            <div class="value" id="debtRatio">0%</div>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <canvas id="assetChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Cash Flow Section -->
+      <div id="cashflow" class="tab-content">
+        <div class="section">
+          <h2 class="section-title">💵 Income</h2>
+          <div class="input-group">
+            <div class="input-item">
+              <label>Salary (Annual)</label>
+              <input type="number" id="salary" placeholder="Enter Amount" value="300000" />
+            </div>
+            <div class="input-item">
+              <label>Bonus (Annual)</label>
+              <input type="number" id="bonus" placeholder="Enter Amount" value="50000" />
+            </div>
+            <div class="input-item">
+              <label>Investment Income (Annual)</label>
+              <input type="number" id="investmentIncome" placeholder="Enter Amount" value="50000" />
+            </div>
+            <div class="input-item">
+              <label>Other Income (Annual)</label>
+              <input type="number" id="otherIncome" placeholder="Enter Amount" value="10000" />
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2 class="section-title">🛒 Expenses</h2>
+          <div class="input-group">
+            <div class="input-item">
+              <label>Living Expenses (Annual)</label>
+              <input type="number" id="living" placeholder="Enter Amount" value="60000" />
+            </div>
+            <div class="input-item">
+              <label>Mortgage/Rent (Annual)</label>
+              <input type="number" id="housing" placeholder="Enter Amount" value="120000" />
+            </div>
+            <div class="input-item">
+              <label>Transport (Annual)</label>
+              <input type="number" id="transport" placeholder="Enter Amount" value="24000" />
+            </div>
+            <div class="input-item">
+              <label>Education (Annual)</label>
+              <input type="number" id="education" placeholder="Enter Amount" value="30000" />
+            </div>
+            <div class="input-item">
+              <label>Healthcare (Annual)</label>
+              <input type="number" id="healthcare" placeholder="Enter Amount" value="12000" />
+            </div>
+            <div class="input-item">
+              <label>Entertainment (Annual)</label>
+              <input type="number" id="entertainment" placeholder="Enter Amount" value="18000" />
+            </div>
+            <div class="input-item">
+              <label>Insurance (Annual)</label>
+              <input type="number" id="insurance" placeholder="Enter Amount" value="12000" />
+            </div>
+            <div class="input-item">
+              <label>Other Expenses (Annual)</label>
+              <input type="number" id="otherExpense" placeholder="Enter Amount" value="6000" />
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-calculate" onclick="calculateCashflow()">Calculate Cash Flow</button>
+
+        <div class="summary-cards" id="cashflowSummary">
+          <div class="summary-card">
+            <h3>Total Income</h3>
+            <div class="value" id="totalIncome">¥0</div>
+          </div>
+          <div class="summary-card">
+            <h3>Total Expenses</h3>
+            <div class="value" id="totalExpense">¥0</div>
+          </div>
+          <div class="summary-card">
+            <h3>Net Cash Flow</h3>
+            <div class="value" id="netCashflow">¥0</div>
+          </div>
+          <div class="summary-card">
+            <h3>Savings Rate</h3>
+            <div class="value" id="savingsRate">0%</div>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div id="sankeyChart" style="width: 100%; height: 500px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js"></script>
+
+  <script>
+    // ===================== Utilities =====================
+    const CURRENCY_SYMBOL = '¥'; // change to '$' for AUD if desired
+    function formatCurrency(n) {
+      const num = Number(n) || 0;
+      return CURRENCY_SYMBOL + num.toLocaleString('en-US');
+    }
+
+    // ===================== Tab Switch =====================
+    function switchTab(evt, tabName) {
+      const buttons = document.querySelectorAll('.tab-button');
+      buttons.forEach((btn) => btn.classList.remove('active'));
+      if (evt && evt.target) evt.target.classList.add('active');
+
+      const contents = document.querySelectorAll('.tab-content');
+      contents.forEach((content) => content.classList.remove('active'));
+      const el = document.getElementById(tabName);
+      if (el) el.classList.add('active');
+    }
+
+    // ===================== Assets =====================
+    let assetChart = null;
+
+    function calculateAssets() {
+      const cash = parseFloat(document.getElementById('cash').value) || 0;
+      const investments = parseFloat(document.getElementById('investments').value) || 0;
+      const fixedAssets = parseFloat(document.getElementById('fixedAssets').value) || 0;
+      const otherAssets = parseFloat(document.getElementById('otherAssets').value) || 0;
+
+      const mortgage = parseFloat(document.getElementById('mortgage').value) || 0;
+      const carLoan = parseFloat(document.getElementById('carLoan').value) || 0;
+      const creditCard = parseFloat(document.getElementById('creditCard').value) || 0;
+      const otherDebt = parseFloat(document.getElementById('otherDebt').value) || 0;
+
+      const totalAssets = cash + investments + fixedAssets + otherAssets;
+      const totalDebt = mortgage + carLoan + creditCard + otherDebt;
+      const netWorth = totalAssets - totalDebt;
+      const debtRatio = totalAssets > 0 ? ((totalDebt / totalAssets) * 100).toFixed(1) : '0.0';
+
+      document.getElementById('totalAssets').textContent = formatCurrency(totalAssets);
+      document.getElementById('totalDebt').textContent = formatCurrency(totalDebt);
+      document.getElementById('netWorth').textContent = formatCurrency(netWorth);
+      document.getElementById('debtRatio').textContent = `${debtRatio}%`;
+
+      drawAssetChart({ cash, investments, fixedAssets, otherAssets });
+    }
+
+    function drawAssetChart(data) {
+      const ctx = document.getElementById('assetChart').getContext('2d');
+      if (assetChart) assetChart.destroy();
+
+      const total = data.cash + data.investments + data.fixedAssets + data.otherAssets;
+      const pct = total > 0
+        ? [data.cash, data.investments, data.fixedAssets, data.otherAssets].map(v => ((v / total) * 100).toFixed(1))
+        : ['0.0','0.0','0.0','0.0'];
+
+      assetChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Liquid Assets', 'Investments', 'Fixed Assets', 'Other Assets'],
+          datasets: [{
+            label: 'Asset Allocation',
+            data: [data.cash, data.investments, data.fixedAssets, data.otherAssets],
+            backgroundColor: [
+              'rgba(102, 126, 234, 0.8)',
+              'rgba(118, 75, 162, 0.8)',
+              'rgba(237, 100, 166, 0.8)',
+              'rgba(255, 159, 64, 0.8)'
+            ],
+            borderColor: [
+              'rgba(102, 126, 234, 1)',
+              'rgba(118, 75, 162, 1)',
+              'rgba(237, 100, 166, 1)',
+              'rgba(255, 159, 64, 1)'
+            ],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 20,
+                font: { size: 14 },
+                generateLabels: function(chart) {
+                  const data = chart.data;
+                  if (data.labels.length && data.datasets.length) {
+                    return data.labels.map((label, i) => {
+                      const dataset = data.datasets[0];
+                      const percent = pct[i];
+                      return {
+                        text: `${label}: ${percent}%`,
+                        fillStyle: dataset.backgroundColor[i],
+                        strokeStyle: dataset.borderColor[i],
+                        lineWidth: dataset.borderWidth,
+                        hidden: false,
+                        index: i
+                      };
+                    });
+                  }
+                  return [];
+                }
+              }
+            },
+            title: { display: true, text: 'Asset Allocation Distribution', font: { size: 18 } },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  const label = ctx.label || '';
+                  const value = ctx.parsed;
+                  const percent = pct[ctx.dataIndex];
+                  return `${label}: ${formatCurrency(value)} (${percent}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // ===================== Cash Flow (Sankey) =====================
+    function calculateCashflow() {
+      const salary = parseFloat(document.getElementById('salary').value) || 0;
+      const bonus = parseFloat(document.getElementById('bonus').value) || 0;
+      const investmentIncome = parseFloat(document.getElementById('investmentIncome').value) || 0;
+      const otherIncome = parseFloat(document.getElementById('otherIncome').value) || 0;
+
+      const living = parseFloat(document.getElementById('living').value) || 0;
+      const housing = parseFloat(document.getElementById('housing').value) || 0;
+      const transport = parseFloat(document.getElementById('transport').value) || 0;
+      const education = parseFloat(document.getElementById('education').value) || 0;
+      const healthcare = parseFloat(document.getElementById('healthcare').value) || 0;
+      const entertainment = parseFloat(document.getElementById('entertainment').value) || 0;
+      const insurance = parseFloat(document.getElementById('insurance').value) || 0;
+      const otherExpense = parseFloat(document.getElementById('otherExpense').value) || 0;
+
+      const totalIncome = salary + bonus + investmentIncome + otherIncome;
+      const totalExpense = living + housing + transport + education + healthcare + entertainment + insurance + otherExpense;
+      const netCashflow = totalIncome - totalExpense;
+      const savingsRate = totalIncome > 0 ? ((netCashflow / totalIncome) * 100).toFixed(1) : '0.0';
+
+      document.getElementById('totalIncome').textContent = formatCurrency(totalIncome);
+      document.getElementById('totalExpense').textContent = formatCurrency(totalExpense);
+      document.getElementById('netCashflow').textContent = formatCurrency(netCashflow);
+      document.getElementById('savingsRate').textContent = `${savingsRate}%`;
+
+      drawCashflowChart({
+        income: { salary, bonus, investmentIncome, otherIncome },
+        expense: { living, housing, transport, education, healthcare, entertainment, insurance, otherExpense }
+      });
+    }
+
+    function drawCashflowChart(data) {
+      // clear previous chart
+      d3.select('#sankeyChart').selectAll('*').remove();
+
+      const width = document.getElementById('sankeyChart').offsetWidth;
+      const height = 500; const margin = { top: 10, right: 10, bottom: 10, left: 10 };
+
+      const svg = d3.select('#sankeyChart')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .style('font', '14px sans-serif');
+
+      const nodes = [
+        // income (left)
+        { name: 'Salary', category: 'income' },
+        { name: 'Bonus', category: 'income' },
+        { name: 'Investment Income', category: 'income' },
+        { name: 'Other Income', category: 'income' },
+        // totals (middle)
+        { name: 'Total Income', category: 'total' },
+        { name: 'Total Expenses', category: 'total' },
+        { name: 'Net Savings', category: 'savings' },
+        // expenses (right)
+        { name: 'Living', category: 'expense' },
+        { name: 'Mortgage/Rent', category: 'expense' },
+        { name: 'Transport', category: 'expense' },
+        { name: 'Education', category: 'expense' },
+        { name: 'Healthcare', category: 'expense' },
+        { name: 'Entertainment', category: 'expense' },
+        { name: 'Insurance', category: 'expense' },
+        { name: 'Other Expenses', category: 'expense' }
+      ];
+
+      const totalIncome = data.income.salary + data.income.bonus + data.income.investmentIncome + data.income.otherIncome;
+      const totalExpense = data.expense.living + data.expense.housing + data.expense.transport + data.expense.education + data.expense.healthcare + data.expense.entertainment + data.expense.insurance + data.expense.otherExpense;
+      const netSavings = totalIncome - totalExpense;
+
+      const links = [
+        // income -> total income
+        { source: 0, target: 4, value: data.income.salary },
+        { source: 1, target: 4, value: data.income.bonus },
+        { source: 2, target: 4, value: data.income.investmentIncome },
+        { source: 3, target: 4, value: data.income.otherIncome },
+        // total income -> total expenses & net savings
+        { source: 4, target: 5, value: totalExpense },
+        { source: 4, target: 6, value: Math.max(0, netSavings) },
+        // total expenses -> each expense item
+        { source: 5, target: 7, value: data.expense.living },
+        { source: 5, target: 8, value: data.expense.housing },
+        { source: 5, target: 9, value: data.expense.transport },
+        { source: 5, target: 10, value: data.expense.education },
+        { source: 5, target: 11, value: data.expense.healthcare },
+        { source: 5, target: 12, value: data.expense.entertainment },
+        { source: 5, target: 13, value: data.expense.insurance },
+        { source: 5, target: 14, value: data.expense.otherExpense }
+      ].filter(d => d.value > 0);
+
+      const sankey = d3.sankey()
+        .nodeWidth(20)
+        .nodePadding(15)
+        .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]]);
+
+      const graph = sankey({
+        nodes: nodes.map(d => Object.assign({}, d)),
+        links: links.map(d => Object.assign({}, d))
+      });
+
+      const color = d3.scaleOrdinal()
+        .domain(['income', 'total', 'expense', 'savings'])
+        .range(['#667eea', '#764ba2', '#ed64a6', '#38b2ac']);
+
+      const link = svg.append('g')
+        .selectAll('path')
+        .data(graph.links)
+        .join('path')
+        .attr('d', d3.sankeyLinkHorizontal())
+        .attr('stroke', d => (d.target.category === 'savings' ? '#38b2ac' : color(d.source.category)))
+        .attr('stroke-width', d => Math.max(1, d.width))
+        .attr('fill', 'none')
+        .attr('opacity', 0.5)
+        .on('mouseover', function() { d3.select(this).attr('opacity', 0.8); })
+        .on('mouseout', function() { d3.select(this).attr('opacity', 0.5); });
+
+      link.append('title').text(d => `${d.source.name} → ${d.target.name}\n${formatCurrency(d.value)}`);
+
+      const node = svg.append('g')
+        .selectAll('rect')
+        .data(graph.nodes)
+        .join('rect')
+        .attr('x', d => d.x0)
+        .attr('y', d => d.y0)
+        .attr('height', d => d.y1 - d.y0)
+        .attr('width', d => d.x1 - d.x0)
+        .attr('fill', d => color(d.category))
+        .attr('opacity', 0.9)
+        .on('mouseover', function() { d3.select(this).attr('opacity', 1); })
+        .on('mouseout', function() { d3.select(this).attr('opacity', 0.9); });
+
+      node.append('title').text(d => {
+        let value = 0;
+        if (d.name === 'Total Income') value = totalIncome;
+        else if (d.name === 'Total Expenses') value = totalExpense;
+        else if (d.name === 'Net Savings') value = netSavings;
+        else {
+          graph.links.forEach(link => {
+            if (link.target === d) value += link.value;
+            if (link.source === d && d.category === 'income') value = link.value;
+          });
+        }
+        return `${d.name}\n${formatCurrency(value)}`;
+      });
+
+      const nodeLabel = svg.append('g')
+        .style('font', "12px 'Microsoft YaHei', sans-serif")
+        .selectAll('text')
+        .data(graph.nodes)
+        .join('text')
+        .attr('x', d => (d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6))
+        .attr('y', d => (d.y1 + d.y0) / 2)
+        .attr('dy', '0.35em')
+        .attr('text-anchor', d => (d.x0 < width / 2 ? 'start' : 'end'))
+        .text(d => {
+          let value = 0;
+          if (d.name === 'Total Income') value = totalIncome;
+          else if (d.name === 'Total Expenses') value = totalExpense;
+          else if (d.name === 'Net Savings') value = netSavings;
+          else {
+            graph.links.forEach(link => {
+              if (link.target === d) value += link.value;
+              if (link.source === d && d.category === 'income') value = link.value;
+            });
+          }
+          return `${d.name}: ${formatCurrency(value)}`;
+        })
+        .style('fill', '#333')
+        .style('font-weight', d => (d.category === 'total' || d.category === 'savings' ? 'bold' : 'normal'));
+
+      svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', 25)
+        .attr('text-anchor', 'middle')
+        .style('font-size', '18px')
+        .style('font-weight', 'bold')
+        .style('fill', '#333')
+        .text('Annual Cash Flow Sankey');
+    }
+
+    // ===================== Simple Tests =====================
+    function parseDisplayedCurrency(text) {
+      return Number(String(text).replace(/[^0-9.-]/g, '')) || 0;
+    }
+
+    function runTests() {
+      const tests = [];
+
+      // Test 1: Assets default values
+      calculateAssets();
+      const a1 = parseDisplayedCurrency(document.getElementById('totalAssets').textContent);
+      const d1 = parseDisplayedCurrency(document.getElementById('totalDebt').textContent);
+      const n1 = parseDisplayedCurrency(document.getElementById('netWorth').textContent);
+      const expectedAssets = 50000 + 200000 + 1500000 + 30000; // 1,780,000
+      const expectedDebt = 800000 + 50000 + 5000 + 10000; // 865,000
+      const expectedNet = expectedAssets - expectedDebt; // 915,000
+      tests.push({ name: 'Assets totals', pass: a1 === expectedAssets && d1 === expectedDebt && n1 === expectedNet });
+
+      // Test 2: Cashflow default values
+      calculateCashflow();
+      const ti = parseDisplayedCurrency(document.getElementById('totalIncome').textContent); // 380,000
+      const te = parseDisplayedCurrency(document.getElementById('totalExpense').textContent); // 289,000
+      const nc = parseDisplayedCurrency(document.getElementById('netCashflow').textContent); // 91,000
+      tests.push({ name: 'Cashflow totals', pass: ti === 380000 && te === 289000 && nc === 91000 });
+
+      const allPassed = tests.every(t => t.pass);
+      tests.forEach(t => console.log(`[TEST] ${t.name}: ${t.pass ? 'PASS' : 'FAIL'}`));
+      console.log(`[TEST] All tests ${allPassed ? 'PASSED' : 'FAILED'}`);
+    }
+
+    // Init on load
+    window.addEventListener('load', () => {
+      try {
+        calculateAssets();
+        runTests();
+      } catch (e) {
+        console.error('Initialization error:', e);
+      }
+    });
+  </script>
+</body>
+</html>
